@@ -1,15 +1,59 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('infile', type=argparse.FileType('r'))
+parser.add_argument('infile', type=str)
 parser.add_argument('-medals', nargs=2, required=True)
 parser.add_argument('-output', '--output', type=argparse.FileType('w', encoding='UTF-8'))
 parser.add_argument('-total', type=str)
 parser.add_argument('-overall', nargs="*")
+parser.add_argument('-interactive', action='store_true')
 
 args = parser.parse_args()
 
-with args.infile as file:
+
+def interactive_mode():
+    current_country = input("Enter country: ")
+    while current_country:
+
+        with open(args.infile, 'r') as current_file:
+            current_line = current_file.readline()
+
+            years = {}
+            first_time = 3000
+            place = None
+
+            while current_line:
+                current_line = current_file.readline()
+                current_data = current_line.split('\t')
+                if current_country in current_data:
+                    current_year = current_data[9]
+                    if current_year not in years:
+                        years[current_year] = [0, 0, 0, 0]
+                    if current_data[-1] != 'NA\n':
+                        years[current_year][3] += 1
+                        if 'Gold\n' in current_data:
+                            years[current_year][0] += 1
+                        elif 'Silver\n' in current_data:
+                            years[current_year][1] += 1
+                        elif 'Bronze\n' in current_data:
+                            years[current_year][2] += 1
+                    if int(current_year) < first_time:
+                        first_time = int(current_year)
+                        place = current_data[-4]
+            all_years = [x for x in years.keys()]
+            all_medals = [x[3] for x in years.values()]
+            the_best = all_medals.index(max(all_medals))
+            the_worst = all_medals.index(min(all_medals))
+            print(f"The first participation in Olympiad was in {first_time} year, in {place}.")
+            print(f"The most successful participation was in {all_years[the_best]} with {all_medals[the_best]} medals.")
+            print(f"The least successful participation was in {all_years[the_worst]} with {all_medals[the_worst]} medals.")
+            for the_year in years:
+                print(f"In {the_year} was won {years[the_year][0]} gold, "
+                      f"{years[the_year][1]} silver and {years[the_year][2]} bronze medals.")
+        current_country = input("Enter country: ")
+
+
+with open(args.infile, 'r') as file:
     next_line = file.readline()
     store = ''
 
@@ -84,4 +128,7 @@ if args.output is not None:
     args.output.writelines(all_text)
 
 print(all_text)
+
+if args.interactive:
+    interactive_mode()
 # python main.py "oa.tsv" -medals UKR 2004 -total 2000 -overall USA UKR -output "new"
